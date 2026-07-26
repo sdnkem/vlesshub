@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">VlessHub</string>
+    <string name="connect">Подключить</string>
+    <string name="disconnect">Отключить</string>
+    <string name="save">Сохранить</string>
+    <string name="add_server_hint">Вставь ссылку конфига (vless / vmess / trojan / ss) или подписку happ://add/…</string>
+</resources>

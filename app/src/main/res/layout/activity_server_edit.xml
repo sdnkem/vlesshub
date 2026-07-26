@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/add_server_hint"
+        android:layout_marginBottom="8dp" />
+
+    <EditText
+        android:id="@+id/inputConfigUrl"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="vless://... / vmess://... / trojan://... / ss://..."
+        android:inputType="textMultiLine"
+        android:minLines="3" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnSave"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="@string/save" />
+
+</LinearLayout>
