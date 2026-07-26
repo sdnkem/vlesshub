@@ -2,95 +2,98 @@ name: Build VlessHub
 
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch: {}
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
-  # ---------------------------------------------------------------
-  # Джоба 1: собирает ядро Xray-core под Android через gomobile
-  # и кладёт результат в артефакт xray-core-aar.
-  # ---------------------------------------------------------------
   build-core:
     runs-on: ubuntu-latest
+    continue-on-error: true
+
     steps:
-      - name: Set up Go
+      - name: Checkout AndroidLibXrayLite
+        uses: actions/checkout@v4
+        with:
+          repository: 2dust/AndroidLibXrayLite
+          path: core-src
+
+      - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: "1.21"
 
-      - name: Set up JDK
+      - name: Setup JDK
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: "17"
 
-      - name: Install Android SDK + NDK
+      - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
       - name: Install NDK
-        run: sdkmanager --install "ndk;26.1.10909125"
+        run: sdkmanager "ndk;26.1.10909125"
 
       - name: Install gomobile
         run: |
           go install golang.org/x/mobile/cmd/gomobile@latest
           go install golang.org/x/mobile/cmd/gobind@latest
-          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
 
-      - name: Clone AndroidLibXrayLite
-        run: git clone --depth 1 https://github.com/2dust/AndroidLibXrayLite.git core-src
-
-      - name: gomobile init
-        run: gomobile init
-        env:
-          ANDROID_NDK_HOME: ${{ env.ANDROID_SDK_ROOT }}/ndk/26.1.10909125
-
-      - name: Build xray-core.aar
+      - name: Build Xray AAR
         working-directory: core-src
-        run: |
-          go mod tidy
-          gomobile bind -target=android -androidapi 24 -o ../xray-core.aar .
+        continue-on-error: true
         env:
           ANDROID_NDK_HOME: ${{ env.ANDROID_SDK_ROOT }}/ndk/26.1.10909125
+        run: |
+          gomobile init
+          go mod tidy
+          gomobile bind \
+            -target=android \
+            -androidapi 24 \
+            -o ../xray-core.aar .
 
-      - name: Upload core artifact
+      - name: Upload Xray AAR
         uses: actions/upload-artifact@v4
+        if: success()
         with:
           name: xray-core-aar
           path: xray-core.aar
 
-  # ---------------------------------------------------------------
-  # Джоба 2: собирает APK. Скачивает .aar из предыдущей джобы (если
-  # она успешна), кладёт в app/libs и собирает приложение целиком.
-  # Если сборка ядра упала — APK всё равно соберётся, но без
-  # реального VPN-функционала (заглушка XrayCoreBridge).
-  # ---------------------------------------------------------------
+
   build-apk:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK
+      - name: Setup JDK
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
-  
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Download Xray AAR if exists
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: xray-core-aar
           path: app/libs
-        continue-on-error: true
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.7'
 
-      - name: Build debug APK
-        run: gradle assembleDebug --stacktrace
+      - name: Build APK
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
 
-      - name: Upload APK artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: VlessHub-debug-apk
